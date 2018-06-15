@@ -1,56 +1,77 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include "glut.h"
-
-int windowWidth = 800;
-int windowHeight = 600;
+#include "glm\glm.hpp"
+#include "font.h"
+#include "Rect.h"
+using namespace glm;
+ivec2 windowSize = {800,600};
 
 bool keys[256];
 
+Rect rect1 = Rect(vec2(100,100),vec2(100,200));
+Rect rect2 = Rect(vec2(windowSize.x/2, windowSize.y/2), vec2(200, 100));
 void display(void) {
 	glClear(GL_COLOR_BUFFER_BIT); //GLbitfield mask
 	glMatrixMode(GL_PROJECTION); //GLenum mode
 	glLoadIdentity();
 	gluOrtho2D(
 		0,//GLdouble left,
-		windowWidth,//GLdouble right,
-		windowHeight,//GLdouble bottom,
+		windowSize.x,//GLdouble right,
+		windowSize.y,//GLdouble bottom,
 		0//GLdouble top
 	);
 	glMatrixMode(GL_MODELVIEW); //GLenum mode
 	glLoadIdentity();
-	glTranslatef(windowWidth / 2, windowHeight / 2, 0); //GLfloat x, GLfloat y, GLfloat z
-	static float angle;
-	//angle += 1;
-	if (keys['d'])		angle += 1;
-	if (keys['a'])		angle -= 1;
-	glRotatef(
-		angle,//GLfloat angle, 
-		0, 0, 1 //GLfloat x, GLfloat y, GLfloat z
-	);
-	glScalef(256, 256, 1); //GLfloat x, GLfloat y, GLfloat z
-	glutWireTeapot(1); //GLdouble size
+	if (rect1.intersect(rect2))
+		glColor3ub(0xff, 0x00, 0x00);
+	else 
+		glColor3ub(0x00, 0x00, 0xff);
+	
+	rect1.draw();
+	glColor3ub(0x00, 0xff, 0x00);
+	rect2.draw();
+
+	
+	fontBegin();
+	fontSetColor(0, 0xff, 0);
+	fontSetSize(FONT_DEFAULT_SIZE);
+	float lineHeight = fontGetSize() * 1.5;
+	float y = windowSize.y - lineHeight * 2;
+	fontSetPosition(0,y );
+	fontSetWeight(fontGetWeightMin());
+	fontDraw("min:%f", fontGetWeightMin());
+	
+	fontSetWeight(fontGetWeightMax());
+	fontSetPosition(0, y+=lineHeight);
+	fontDraw("max:%f", fontGetWeightMax());
+	fontEnd();
 	glutSwapBuffers();
 }
 void idle(void) {
+	float f = 2;
+	if (keys['w']) rect1.m_position.y -= f;
+	if (keys['s'])rect1.m_position.y += f;
+	if (keys['a'])rect1.m_position.x -= f;
+	if (keys['d'])rect1.m_position.x += f;
 	glutPostRedisplay();
 }
 void reshape(int width, int height) {
 	//printf("reshape: width:%d height:%d\n", width, height);
 	glViewport(
 		0,0,//GLint x, GLint y, 
-		windowWidth, windowHeight//GLsizei width, GLsizei height
+		width, height//GLsizei width, GLsizei height
 	);
-	windowWidth = width;
-	windowHeight = height;
+	windowSize = ivec2(width,height);	
 }
 void (keyboard)(unsigned char key, int x, int y) {
 	if (key == 0x1b)
 		exit(0);
-	printf("keyboard: \'%c\'(%#x)\n",key,key);
+//	printf("keyboard: \'%c\'(%#x)\n",key,key);
 	keys[key] = true;
 }
 void keyboardUp(unsigned char key, int x, int y) {
-	printf("keyboardUp: \'%c\'(%#x)\n", key, key);
+//	printf("keyboardUp: \'%c\'(%#x)\n", key, key);
 	keys[key] = false;
 }
 int main(int argc, char *argv[]) {
@@ -59,7 +80,7 @@ int main(int argc, char *argv[]) {
 		argv); //char **argv
 	glutInitDisplayMode(GL_DOUBLE); //unsigned int mode
 	glutInitWindowPosition(640,0); //int x, y
-	glutInitWindowSize(windowWidth,windowHeight);//int width, height
+	glutInitWindowSize(windowSize.x, windowSize.y);//int width, height
 	glutCreateWindow("title");//const char *title
 	glutDisplayFunc(display);//void (GLUTCALLBACK *func)(void)
 	glutIdleFunc(idle); //void (GLUTCALLBACK *func)(void)
