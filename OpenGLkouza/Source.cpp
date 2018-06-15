@@ -1,16 +1,17 @@
 #include <stdlib.h>
+#include <time.h>
 #include <stdio.h>
 #include "glut.h"
 #include "glm\glm.hpp"
 #include "font.h"
-#include "Rect.h"
+#include "Ball.h"
 using namespace glm;
+#define BALL_MAX 256
 ivec2 windowSize = {800,600};
 
 bool keys[256];
 
-Rect rect1 = Rect(vec2(100,100),vec2(100,200));
-Rect rect2 = Rect(vec2(windowSize.x/2, windowSize.y/2), vec2(200, 100));
+Ball balls[256];
 void display(void) {
 	glClear(GL_COLOR_BUFFER_BIT); //GLbitfield mask
 	glMatrixMode(GL_PROJECTION); //GLenum mode
@@ -23,15 +24,25 @@ void display(void) {
 	);
 	glMatrixMode(GL_MODELVIEW); //GLenum mode
 	glLoadIdentity();
-	if (rect1.intersect(rect2))
-		glColor3ub(0xff, 0x00, 0x00);
-	else 
-		glColor3ub(0x00, 0x00, 0xff);
-	
-	rect1.draw();
-	glColor3ub(0x00, 0xff, 0x00);
-	rect2.draw();
 
+	unsigned char colors[6][3] = {
+		{ 0xff,0x00,0x00},
+		{ 0x00,0xff,0x00 },
+		{ 0x00,0x00,0xff },
+		{ 0xff,0xff,0x00 },
+		{ 0x00,0xff,0xff },
+		{ 0xff,0x00,0xff }
+	};
+
+	for (int i = 0; i < BALL_MAX; i++)
+	{
+		glColor3ub(
+			colors[i % 6][0],
+			colors[i % 6][1],
+			colors[i % 6][2]
+			);
+		balls[i].draw();
+	}
 	
 	fontBegin();
 	fontSetColor(0, 0xff, 0);
@@ -40,20 +51,31 @@ void display(void) {
 	float y = windowSize.y - lineHeight * 2;
 	fontSetPosition(0,y );
 	fontSetWeight(fontGetWeightMin());
-	fontDraw("min:%f", fontGetWeightMin());
+//	fontDraw("min:%f", fontGetWeightMin());
 	
-	fontSetWeight(fontGetWeightMax());
-	fontSetPosition(0, y+=lineHeight);
-	fontDraw("max:%f", fontGetWeightMax());
 	fontEnd();
 	glutSwapBuffers();
 }
 void idle(void) {
-	float f = 2;
-	if (keys['w']) rect1.m_position.y -= f;
-	if (keys['s'])rect1.m_position.y += f;
-	if (keys['a'])rect1.m_position.x -= f;
-	if (keys['d'])rect1.m_position.x += f;
+	for (int i = 0; i < BALL_MAX; i++) {
+		balls[i].update();
+		if (balls[i].m_position.y < 0) {
+			balls[i].m_position = balls[i].m_lastPosition;
+			balls[i].m_speed.y = fabs(balls[i].m_speed.y);
+		}
+		if (balls[i].m_position.x < 0) {
+			balls[i].m_position = balls[i].m_lastPosition;
+			balls[i].m_speed.x = fabs(balls[i].m_speed.x);
+		}
+		if (balls[i].m_position.x >= windowSize.x) {
+			balls[i].m_position = balls[i].m_lastPosition;
+			balls[i].m_speed.x = -fabs(balls[i].m_speed.x);
+		}
+		if (balls[i].m_position.y >= windowSize.y) {
+			balls[i].m_position = balls[i].m_lastPosition;
+			balls[i].m_speed.y = -fabs(balls[i].m_speed.y);
+		}
+	}
 	glutPostRedisplay();
 }
 void reshape(int width, int height) {
@@ -75,6 +97,17 @@ void keyboardUp(unsigned char key, int x, int y) {
 	keys[key] = false;
 }
 int main(int argc, char *argv[]) {
+	srand(time(NULL));
+	for (int i = 0; i < BALL_MAX; i++) {
+		balls[i].m_position = vec2(
+			rand() % windowSize.x,
+			rand() % windowSize.y
+		);
+		balls[i].m_speed = 
+			normalize(vec2((float)rand()/RAND_MAX -.5f,
+			(float)rand()/RAND_MAX-.5f));
+
+	}
 	glutInit(
 		&argc, //int *argcp
 		argv); //char **argv
